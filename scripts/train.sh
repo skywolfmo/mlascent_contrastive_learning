@@ -14,8 +14,8 @@ img_height=224
 img_width=224
 seed=420
 gpu='0'
-dataset_path='/content/beyond-the-jupyter-notebook/data/processed/Rice_Image_Dataset' # Path to the dataset directory
-test_dataset_path='/content/beyond-the-jupyter-notebook/data/processed/Rice_Image_Dataset' # Path to the test dataset directory
+dataset_path='/content/mlascent_contrastive_learning/data/processed/Rice_Image_Dataset' # Path to the dataset directory
+test_dataset_path='/content/mlascent_contrastive_learning/data/processed/Rice_Image_Dataset' # Path to the test dataset directory
 num_img_lim=100000 # Number of images per class
 val_split=0.2 # Validation split
 n_cross_validation=5 # Number of bins for cross-validation
@@ -26,7 +26,7 @@ entity='skywolf'
 model_name='BasicCNN'
 
 # Running the training script with parameters
-nohup python /content/beyond-the-jupyter-notebook/src/train.py \
+nohup python /content/mlascent_contrastive_learning/src/train.py \
   --learning_rate $learning_rate \
   --batch_size $batch_size \
   --epochs $epochs \

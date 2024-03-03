@@ -19,7 +19,7 @@ def loss_function(y_pred, margin=1.0):
     """
     This nested function calculates the loss for a given batch.
     """
-    anchor, positive, negative = tf.split(y_pred, 3, axis=1)
+    anchor, positive, negative = tf.split(y_pred, 3, axis=0)
     ap_distance = kl_divergence(anchor, positive)
     an_distance = kl_divergence(anchor, negative)
 

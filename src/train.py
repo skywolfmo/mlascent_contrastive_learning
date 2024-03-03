@@ -110,6 +110,9 @@ def train(config):
                 break
 
         train_data.reset()  # Reset the generator after each epoch
+        print(
+              f'Train Loss: {total_loss}, '
+              )
 
         print('Validation...')
         # Validation loop
@@ -120,8 +123,10 @@ def train(config):
                 break
 
         val_data.reset()  # Reset the generator after each epoch
+        print(
+              f'Val Loss: {total_v_loss}, '
+              )
 
-        val_data.reset()  # Reset the generator after each epoch
 
         # Log metrics with Wandb
         logs = {
@@ -132,11 +137,6 @@ def train(config):
 
         wandb_callback.on_epoch_end(epoch, logs=logs)
 
-        print(f'Epoch {epoch + 1}, '
-              f'Train Loss: {total_loss}, '
-              f'Val Loss: {total_v_loss}, '
-              )
-
         current_val_loss = total_v_loss
         if current_val_loss < best_val_loss:
             model.save(os.path.join(wandb.run.dir, f'{model_name}_best_val_loss_model.keras'))
@@ -145,9 +145,6 @@ def train(config):
     print('Saving Last Model')
     # Save the trained model
     model.save(os.path.join(wandb.run.dir, f"last_{model_name}_model.keras"))
-
-    
-    print('Evaluating Model on Test Dataset...')
 
     print("Training completed successfully!")
 

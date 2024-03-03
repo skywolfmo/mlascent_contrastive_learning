@@ -32,6 +32,7 @@ from utils.miscs.set_seeds import set_seed
 from utils.training.train_step import train_step
 from utils.training.validation_step import val_step
 
+from utils.losses.triplet_loss import loss_function as loss_fn
 
 def train(config):
 
@@ -81,7 +82,6 @@ def train(config):
     with strategy.scope():
         model = build_model(config)
         model.summary()
-        loss_fn = tf.keras.losses.TripletSemiHardLoss()
 
         optimizer = Adam()
 

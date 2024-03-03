@@ -72,7 +72,7 @@ class MultiModalDataGenerator(Sequence):
             anchor_images.append(anchor_img)
 
             # Selecting positive sample from the same class
-            positive_df = batch_df[batch_df['class'] == anchor_row['class']]
+            positive_df = self.df[self.df['class'] == anchor_row['class']]
             positive_row = positive_df.iloc[np.random.randint(0, len(positive_df))]
             positive_img = tf.io.read_file(positive_row['rgb'])
             positive_img = tf.image.decode_png(positive_img, channels=3)
@@ -80,7 +80,7 @@ class MultiModalDataGenerator(Sequence):
             positive_images.append(positive_img)
 
             # Selecting negative sample from a different class
-            negative_df = batch_df[batch_df['class'] != anchor_row['class']]
+            negative_df = self.df[self.df['class'] != anchor_row['class']]
             negative_row = negative_df.iloc[np.random.randint(0, len(negative_df))]
             negative_img = tf.io.read_file(negative_row['rgb'])
             negative_img = tf.image.decode_png(negative_img, channels=3)

@@ -22,7 +22,6 @@ import wandb
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from utils.testing.evaluate_test_data import evaluate_test_data
 
 from utils.data_loaders.load_data import load_data
 
@@ -30,23 +29,8 @@ from utils.models.build_model import build_model
 
 from utils.miscs.setup_gpu import setup_gpus
 from utils.miscs.set_seeds import set_seed
-
-@tf.function
-def train_step(inputs, targets, model, loss_fn, optimizer):
-    with tf.GradientTape() as tape:
-        predictions = model(inputs, training=True)
-        total_loss = loss_fn(targets, predictions)
-
-    gradients = tape.gradient(total_loss, model.trainable_variables)
-    optimizer.apply_gradients(zip(gradients, model.trainable_variables))
-    
-    return total_loss, predictions
-
-@tf.function
-def val_step(inputs, targets, model, loss_fn):
-    predictions = model(inputs, training=False)
-    total_v_loss = loss_fn(targets, predictions)
-    return total_v_loss, predictions
+from utils.training.train_step import train_step
+from utils.training.validation_step import val_step
 
 
 def train(config):
@@ -116,9 +100,6 @@ def train(config):
         if epoch == config.trainable_epochs:
             model.trainable = True
 
-        if epoch == config.trainable_epochs:
-            model.trainable = True
-
         print('Training...')
         # Training loop
         for steps, (inputs, _) in enumerate(train_data):
@@ -185,6 +166,7 @@ if __name__ == '__main__':
     parser.add_argument('--test_dataset_path', type=str, required=True, help='Path to the test dataset directory.')
     parser.add_argument('--num_img_lim', type=int, required=True, help='The number of images per class')
     parser.add_argument('--num_classes', type=int, required=True, help='Number of Classes')
+    parser.add_argument('--embedding_dim', type=int, required=True, help='Embedding Dimension')
     parser.add_argument('--val_split', type=float, required=True, help='Validation Split')
 
 

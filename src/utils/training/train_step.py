@@ -15,6 +15,7 @@ def train_step(inputs, model, loss_fn, optimizer):
 
     # Compute gradients and update weights
     gradients = tape.gradient(total_loss, model.trainable_variables)
+
     optimizer.apply_gradients(zip(gradients, model.trainable_variables))
     
     return total_loss

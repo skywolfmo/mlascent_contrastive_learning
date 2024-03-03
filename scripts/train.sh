@@ -24,7 +24,7 @@ trainable_epochs=0 # Number of epochs before the backbone becomes trainable
 project='mlascent'
 entity='skywolf'
 model_name='BasicCNN'
-
+embedding_dim=128
 # Running the training script with parameters
 nohup python /content/mlascent_contrastive_learning/src/train.py \
   --learning_rate $learning_rate \
@@ -43,5 +43,6 @@ nohup python /content/mlascent_contrastive_learning/src/train.py \
   --project $project \
   --entity $entity \
   --model_name $model_name \
+  --embedding_dim $embedding_dim \
   > train_logs.out
 

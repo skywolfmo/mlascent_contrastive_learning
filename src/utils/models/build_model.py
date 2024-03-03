@@ -14,16 +14,7 @@ def build_model(config):
     x_rgb = base_model_rgb(inputs)
     x_rgb = GlobalAveragePooling2D()(x_rgb)
     x_rgb = LayerNormalization()(x_rgb)
-
-    # Flattening
-    xc = Flatten()(x_rgb)  # Flatten 
-
-    # Dense layers
-    xc = Dense(256, activation='relu')(xc)
-    xc = Dropout(rate=0.2)(xc)
-    xc = Dense(256, activation='relu')(xc)
-    xc = Dropout(rate=0.2)(xc)
-    predictions = Dense(config.num_classes, activation='softmax')(xc)
+    predictions = Dense(config.embedding_dim, activation='softmax')(x_rgb)
 
     model = Model(inputs=inputs, outputs=predictions)
     return model

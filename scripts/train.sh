@@ -21,7 +21,7 @@ val_split=0.2 # Validation split
 n_cross_validation=5 # Number of bins for cross-validation
 num_classes=5 # Number of classes
 trainable_epochs=0 # Number of epochs before the backbone becomes trainable
-project='beyond-jup'
+project='mlascent'
 entity='skywolf'
 model_name='BasicCNN'
 

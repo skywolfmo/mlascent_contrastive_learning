@@ -1,11 +1,8 @@
-from keras.preprocessing.image import ImageDataGenerator
 from keras.utils import Sequence
 import os
 import pandas as pd
 import random
-from tensorflow.keras.preprocessing import image
 import tensorflow as tf
-from tensorflow.keras.utils import to_categorical
 import numpy as np
 
 def limit_data(config, n=100000):

@@ -94,34 +94,13 @@ def train(config):
 
     # Build model
     print('Building Model:')
-
     with strategy.scope():
         model = build_model(config)
         model.summary()
-        loss_fn = tf.keras.losses.CategoricalCrossentropy(
-            from_logits=False, reduction=tf.keras.losses.Reduction.SUM_OVER_BATCH_SIZE)
-        # Metrics to measure loss and accuracy for training
-        train_loss = tf.keras.metrics.Mean(name='train_loss')
-        train_accuracy = tf.keras.metrics.CategoricalAccuracy(
-            name='train_accuracy')
-        train_precision = tf.keras.metrics.Precision(name='train_precision')
-        train_recall = tf.keras.metrics.Recall(name='train_recall')
+        loss_fn = tf.keras.losses.TripletSemiHardLoss()
 
-        # Metrics to measure loss and accuracy for validation
-        val_loss = tf.keras.metrics.Mean(name='val_loss')
-        val_accuracy = tf.keras.metrics.CategoricalAccuracy(
-            name='val_accuracy')
-        val_precision = tf.keras.metrics.Precision(name='val_precision')
-        val_recall = tf.keras.metrics.Recall(name='val_recall')
         optimizer = Adam()
 
-        # Initialize metrics
-        class_accuracy = [tf.keras.metrics.BinaryAccuracy(
-            name=f'class_{i}_accuracy') for i in range(5)]
-        class_precision = [tf.keras.metrics.Precision(
-            name=f'class_{i}_precision') for i in range(5)]
-        class_recall = [tf.keras.metrics.Recall(
-            name=f'class_{i}_recall') for i in range(5)]
     wandb_callback = WandbCallback(save_model=False)
 
     wandb_callback.set_model(model)
@@ -132,98 +111,52 @@ def train(config):
     for epoch in range(config.epochs):
         print(f'Epoch {epoch}:')
         # Reset the metrics at start of each epoch
-        train_accuracy.reset_states()
-        train_precision.reset_states()
-        train_recall.reset_states()
-        val_accuracy.reset_states()
-        val_precision.reset_states()
-        val_recall.reset_states()
-        for class_id in range(config.num_classes):
-            class_accuracy[class_id].reset_states()
-            class_precision[class_id].reset_states()
-            class_recall[class_id].reset_states()
-
         # Before each epoch, we call the 'on_epoch_begin' method of our callback
         wandb_callback.on_epoch_begin(epoch)
         if epoch == config.trainable_epochs:
             model.trainable = True
 
+        if epoch == config.trainable_epochs:
+            model.trainable = True
+
         print('Training...')
         # Training loop
-        for steps, (inputs, targets) in enumerate(train_data):
-            # TODO: augment the inputs with random flip horizental to all the modalities
-            total_loss, predictions = train_step(inputs, targets, model, loss_fn, optimizer)
-            train_loss.update_state(total_loss)
-            train_accuracy.update_state(targets, predictions)
-            train_precision.update_state(targets, predictions)
-            train_recall.update_state(targets, predictions)
+        for steps, (inputs, _) in enumerate(train_data):
+            total_loss = train_step(inputs, model, loss_fn, optimizer)
+
             # Break the loop once we reach the number of steps per epoch
-            if steps >= len(train_data.df) // config.batch_size:
+            if steps >= len(train_data) // config.batch_size:
                 break
 
         train_data.reset()  # Reset the generator after each epoch
 
         print('Validation...')
-        # # Validation loop
-        for steps, (inputs, targets) in enumerate(val_data):
-            total_v_loss, predictions = val_step(inputs, targets, model, loss_fn)
-            val_loss.update_state(total_v_loss)
-            val_accuracy.update_state(targets, predictions)
-            val_precision.update_state(targets, predictions)
-            val_recall.update_state(targets, predictions)
-            
-            # Update metrics for each class
-            for class_id in range(config.num_classes):
-                y_true_class = tf.equal(tf.argmax(targets, axis=-1), class_id)
-                y_pred_class = tf.equal(tf.argmax(predictions, axis=-1), class_id)
-                
-                class_accuracy[class_id].update_state(y_true_class, y_pred_class)
-                class_precision[class_id].update_state(y_true_class, y_pred_class)
-                class_recall[class_id].update_state(y_true_class, y_pred_class)
-                
-            if steps == len(val_data.df) // config.batch_size:
+        # Validation loop
+        for steps, (inputs, _) in enumerate(val_data):
+            total_v_loss = val_step(inputs, model, loss_fn)
+
+            if steps == len(val_data) // config.batch_size:
                 break
+
+        val_data.reset()  # Reset the generator after each epoch
 
         val_data.reset()  # Reset the generator after each epoch
 
         # Log metrics with Wandb
         logs = {
             'epoch': epoch,
-            'train_loss': train_loss.result(),
-            'train_accuracy': train_accuracy.result(),
-            'train_precision': train_precision.result(),
-            'train_recall': train_recall.result(),
-            'val_loss': val_loss.result(),
-            'val_accuracy': val_accuracy.result(),
-            'val_precision': val_precision.result(),
-            'val_recall': val_recall.result()
+            'train_loss': total_loss,
+            'val_loss': total_v_loss,
         }
 
-        for class_id in range(config.num_classes):
-            logs[f'class_{class_id}_accuracy'] = class_accuracy[class_id].result(
-            ).numpy()
-            logs[f'class_{class_id}_precision'] = class_precision[class_id].result(
-            ).numpy()
-            logs[f'class_{class_id}_recall'] = class_recall[class_id].result(
-            ).numpy()
-
-        # # # After each epoch, we call the 'on_epoch_end' method of our callback
         wandb_callback.on_epoch_end(epoch, logs=logs)
 
         print(f'Epoch {epoch + 1}, '
-              f'Train Loss: {train_loss.result().numpy()}, '
-              f'Train Accuracy: {train_accuracy.result().numpy()}, '
-              f'Val Loss: {val_loss.result().numpy()}, '
-              f'Val Accuracy: {val_accuracy.result().numpy()}'
+              f'Train Loss: {total_loss}, '
+              f'Val Loss: {total_v_loss}, '
               )
 
-        for class_id in range(config.num_classes):
-            print(f'  Class {class_id}: '
-                  f'Accuracy: {class_accuracy[class_id].result().numpy()}, '
-                  f'Precision: {class_precision[class_id].result().numpy()}, '
-                  f'Recall: {class_recall[class_id].result().numpy()}')
-
-        current_val_loss = val_loss.result().numpy()
+        current_val_loss = total_v_loss
         if current_val_loss < best_val_loss:
             model.save(os.path.join(wandb.run.dir, f'{model_name}_best_val_loss_model.keras'))
             best_val_loss = current_val_loss
@@ -234,42 +167,6 @@ def train(config):
 
     
     print('Evaluating Model on Test Dataset...')
-
-    metrics, y_true, y_pred, y_pred_probs = evaluate_test_data(val_data, model, config.num_classes, config)
-
-    wandb.log({
-        "conf_mat": wandb.plot.confusion_matrix(
-            probs=None,
-            preds=y_pred,
-            y_true=y_true,  # Ensure y_true is defined and accessible here
-            class_names=class_names
-        ),
-        "roc_curve": wandb.plot.roc_curve(y_true, y_pred_probs, labels=class_names)
-    })
-
-    # Plot and save confusion matrix
-    plt.figure(figsize=(10, 8))
-    sns.heatmap(metrics["confusion_matrix"], annot=True, fmt="d")
-    plt.title('Confusion Matrix')
-    plt.ylabel('True Label')
-    plt.xlabel('Predicted Label')
-    cm_path = os.path.join(wandb.run.dir, 'confusion_matrix.png')
-    plt.savefig(cm_path)
-    plt.close()
-
-    # Plot and save ROC curve
-    plt.figure()
-    for i in range(config.num_classes):
-        plt.plot(metrics["fpr"][i], metrics["tpr"][i], label='Class {} (area = {:.2f})'.format(i, metrics["roc_auc"][i]))
-    plt.plot([0, 1], [0, 1], 'k--')
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.title('ROC Curve')
-    plt.legend(loc='lower right')
-    roc_path = os.path.join(wandb.run.dir, 'roc_curve.png')
-    plt.savefig(roc_path)
-    plt.close()
-
 
     print("Training completed successfully!")
 

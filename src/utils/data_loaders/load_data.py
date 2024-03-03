@@ -46,17 +46,17 @@ class MultiModalDataGenerator(Sequence):
         self.target_size = (config.img_height, config.img_width)
         self.subset = subset
         self.config = config
-    
 
         if subset == 'training':
             self.df = self.df.sample(frac=1-config.val_split, random_state=config.seed)
-
         elif subset == 'validation':
             self.df = self.df.drop(self.df.sample(frac=1-config.val_split, random_state=config.seed).index)
+        
         self.log_image_counts()
 
     def __len__(self):
         return int(np.ceil(len(self.df) / float(self.batch_size)))
+
     def log_image_counts(self):
         self.num_images = len(self.df)
         counts_per_set = self.df['class'].value_counts()
@@ -66,30 +66,35 @@ class MultiModalDataGenerator(Sequence):
     def __getitem__(self, idx):
         batch_df = self.df.iloc[idx * self.batch_size:(idx + 1) * self.batch_size]
 
-        rgb_images = []
+        anchor_images, positive_images, negative_images = [], [], []
 
-        for _, row in batch_df.iterrows():
-            rgb_img = tf.io.read_file(row['rgb'])
-            rgb_img = tf.image.decode_png(rgb_img, channels=3)
-            rgb_img = tf.image.resize(rgb_img, self.target_size)
-            rgb_images.append(rgb_img)
+        for _, anchor_row in batch_df.iterrows():
+            anchor_img = tf.io.read_file(anchor_row['rgb'])
+            anchor_img = tf.image.decode_png(anchor_img, channels=3)
+            anchor_img = tf.image.resize(anchor_img, self.target_size)
+            anchor_images.append(anchor_img)
 
+            # Selecting positive sample from the same class
+            positive_df = batch_df[batch_df['class'] == anchor_row['class']]
+            positive_row = positive_df.iloc[np.random.randint(0, len(positive_df))]
+            positive_img = tf.io.read_file(positive_row['rgb'])
+            positive_img = tf.image.decode_png(positive_img, channels=3)
+            positive_img = tf.image.resize(positive_img, self.target_size)
+            positive_images.append(positive_img)
 
-        inputs = []
+            # Selecting negative sample from a different class
+            negative_df = batch_df[batch_df['class'] != anchor_row['class']]
+            negative_row = negative_df.iloc[np.random.randint(0, len(negative_df))]
+            negative_img = tf.io.read_file(negative_row['rgb'])
+            negative_img = tf.image.decode_png(negative_img, channels=3)
+            negative_img = tf.image.resize(negative_img, self.target_size)
+            negative_images.append(negative_img)
 
-        rgb_images = tf.stack(rgb_images) / 255.0
-        inputs.append(rgb_images)
+        anchor_images = tf.stack(anchor_images) / 255.0
+        positive_images = tf.stack(positive_images) / 255.0
+        negative_images = tf.stack(negative_images) / 255.0
 
-
-        class_labels = {'Arborio': 0, 'Basmati': 1, 'Ipsala': 2, 'Jasmine': 3, 'Karacadag': 4}
-        
-        # Convert class labels to integers
-        int_labels = batch_df['class'].replace(class_labels).values
-
-        # Convert integer labels to one-hot encoding
-        targets = to_categorical(int_labels, num_classes=self.config.num_classes)
-
-        return inputs, targets
+        return [anchor_images, positive_images, negative_images], None
 
     def reset(self):
         self.df = self.df.sample(frac=1) if self.subset == 'training' else self.df

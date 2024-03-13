@@ -13,7 +13,6 @@ def build_model(config):
     base_model_rgb = ConvNeXtTiny(
         model_name="convnext_small",
         include_top=False,
-        include_preprocessing=True,
         weights="imagenet",
     )
     base_model_rgb.trainable = config.trainable_epochs == 0

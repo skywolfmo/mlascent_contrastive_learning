@@ -1,5 +1,5 @@
 import tensorflow as tf
-from tensorflow.keras import ops
+from keras import ops
 
 
 def loss_function(y_pred, margin=1.0):

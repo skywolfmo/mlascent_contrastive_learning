@@ -20,7 +20,8 @@ def build_model(config):
     x_rgb = GlobalAveragePooling2D()(x_rgb)
     x_rgb = LayerNormalization()(x_rgb)
     x_rgb = Dense(config.embedding_dim, activation= tf.keras.activations.gelu)(x_rgb)
-    predictions = Dense(config.embedding_dim, activation='softmax')(x_rgb)
+    predictions = Dense(config.embedding_dim, activation='tanh')(x_rgb)
+
 
     model = Model(inputs=inputs, outputs=predictions)
     return model

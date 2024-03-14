@@ -13,7 +13,7 @@ It includes functionality for loading data, setting up a model, and training and
 import argparse
 import tensorflow as tf
 from wandb.keras import WandbCallback
-from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.optimizers import AdamW
 
 import os
 import numpy as np
@@ -83,7 +83,7 @@ def train(config):
         model = build_model(config)
         model.summary()
 
-        optimizer = Adam()
+        optimizer = AdamW()
 
     wandb_callback = WandbCallback(save_model=False)
 
